@@ -1,0 +1,29 @@
+{
+  "name": "insighta-web",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-vercel": "^5.3.1",
+    "@sveltejs/kit": "^2.5.5",
+    "@sveltejs/vite-plugin-svelte": "^3.1.0",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^25.6.0",
+    "autoprefixer": "^10.5.0",
+    "lucide-svelte": "^0.468.0",
+    "postcss": "^8.5.12",
+    "svelte": "^4.2.15",
+    "svelte-check": "^3.7.0",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10"
+  }
+}
