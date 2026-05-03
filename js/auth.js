@@ -2,7 +2,7 @@
 // Tokens are stored in localStorage. The CSRF token comes from the backend
 // as a query param after OAuth and is stored separately.
 
-const BACKEND = 'https://insighta-backend.vercel.app';
+const BACKEND = 'https://insighta-backend-pearl.vercel.app';
 
 export const Auth = {
   save(data) {
