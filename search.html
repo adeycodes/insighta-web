@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search — Insighta Labs+</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a2e; }
+    main { max-width: 780px; margin: 2rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .subtitle { color: #666; margin-bottom: 1.5rem; }
+    .search-box { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+    .search-box input { flex: 1; padding: 0.75rem 1rem; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; transition: border-color 0.15s; }
+    .search-box input:focus { outline: none; border-color: #4361ee; }
+    .search-box button { padding: 0.75rem 1.5rem; background: #4361ee; color: #fff; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+    .search-box button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .examples { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 2rem; }
+    .examples-label { font-size: 0.8rem; color: #999; }
+    .chip { background: #f0f0f0; border: none; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; color: #555; transition: background 0.15s; }
+    .chip:hover { background: #e0e0e0; }
+    .results-header { margin-bottom: 1rem; font-size: 0.9rem; color: #555; }
+    .card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem 0.75rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #999; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 0.75rem; border-bottom: 1px solid #f8f8f8; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; }
+    .badge-male { background: #e8f4fd; color: #2779bd; }
+    .badge-female { background: #fde8f4; color: #bd2779; }
+    .muted { color: #aaa; font-size: 0.85em; }
+    .empty { color: #999; text-align: center; padding: 2rem; }
+    .error-box { background: #fff8e8; border: 1px solid #fcd34d; padding: 0.875rem 1rem; border-radius: 8px; color: #92400e; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Natural Language Search</h1>
+    <p class="subtitle">Describe the profiles you're looking for in plain English.</p>
+
+    <div class="search-box">
+      <input type="text" id="query" placeholder='Try "young males from Nigeria"' />
+      <button id="search-btn">Search</button>
+    </div>
+
+    <div class="examples">
+      <span class="examples-label">Try:</span>
+      <button class="chip">young males from Nigeria</button>
+      <button class="chip">adult women in Kenya</button>
+      <button class="chip">seniors above 65</button>
+      <button class="chip">teenagers between 14 and 17</button>
+      <button class="chip">females from Ghana</button>
+    </div>
+
+    <div id="results"></div>
+  </main>
+
+  <script type="module">
+    import { Auth } from './js/auth.js';
+    import { API }  from './js/api.js';
+    import { renderNav, navCSS } from './js/nav.js';
+
+    if (!Auth.requireAuth()) throw new Error('not authed');
+
+    const style = document.createElement('style');
+    style.textContent = navCSS;
+    document.head.appendChild(style);
+    renderNav();
+
+    const input   = document.getElementById('query');
+    const btn     = document.getElementById('search-btn');
+    const results = document.getElementById('results');
+
+    async function search() {
+      const q = input.value.trim();
+      if (!q) return;
+
+      results.innerHTML = '<p class="empty">Searching…</p>';
+
+      try {
+        const data = await API.searchProfiles({ q, limit: 20 });
+
+        if (!data.data.length) {
+          results.innerHTML = '<p class="empty">No profiles matched your search.</p>';
+          return;
+        }
+
+        const rows = data.data.map(p => `
+          <tr>
+            <td><a href="/profile.html?id=${p.id}" style="color:#1a1a2e;font-weight:500;text-decoration:none">${p.name}</a></td>
+            <td><span class="badge badge-${p.gender}">${p.gender}</span></td>
+            <td>${p.age} <span class="muted">(${p.age_group})</span></td>
+            <td>${p.country_name}</td>
+          </tr>`).join('');
+
+        results.innerHTML = `
+          <p class="results-header"><strong>${data.total.toLocaleString()}</strong> result${data.total !== 1 ? 's' : ''} for "<em>${q}</em>"</p>
+          <div class="card">
+            <table>
+              <thead><tr><th>Name</th><th>Gender</th><th>Age</th><th>Country</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+      } catch (e) {
+        results.innerHTML = `<div class="error-box">Could not interpret your query. Try rephrasing — e.g. "adult females from Ghana".</div>`;
+      }
+    }
+
+    btn.addEventListener('click', search);
+    input.addEventListener('keydown', e => e.key === 'Enter' && search());
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        input.value = chip.textContent;
+        search();
+      });
+    });
+  </script>
+</body>
+</html>

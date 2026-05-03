@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account — Insighta Labs+</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a2e; }
+    main { max-width: 700px; margin: 2rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .card { background: #fff; border-radius: 12px; padding: 1.75rem; margin-bottom: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .profile-row { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid #f0f0f0; }
+    .avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; background: #4361ee; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.75rem; font-weight: 700; }
+    h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .role-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; background: #e8f0fe; color: #4361ee; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .role-badge.admin { background: #fff0e0; color: #e67e22; }
+    .fields { display: grid; gap: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .field label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #999; }
+    .field span { font-size: 0.9rem; color: #333; }
+    .mono { font-family: monospace; font-size: 0.8rem; color: #aaa; }
+    h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.875rem; }
+    ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { font-size: 0.875rem; color: #555; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>My Account</h1>
+
+    <div class="card">
+      <div class="profile-row">
+        <div id="avatar-wrap"></div>
+        <div>
+          <h2 id="username-display">@—</h2>
+          <span class="role-badge" id="role-badge">—</span>
+        </div>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <label>User ID</label>
+          <span class="mono" id="user-id">—</span>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <span id="user-email">—</span>
+        </div>
+        <div class="field">
+          <label>Last Login</label>
+          <span id="user-login">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Role Permissions</h3>
+      <ul id="permissions"></ul>
+    </div>
+  </main>
+
+  <script type="module">
+    import { Auth } from './js/auth.js';
+    import { API }  from './js/api.js';
+    import { renderNav, navCSS } from './js/nav.js';
+
+    if (!Auth.requireAuth()) throw new Error('not authed');
+
+    const style = document.createElement('style');
+    style.textContent = navCSS;
+    document.head.appendChild(style);
+    renderNav();
+
+    async function load() {
+      try {
+        const resp = await API.getMe();
+        const u = resp.data;
+
+        // Avatar
+        const avatarWrap = document.getElementById('avatar-wrap');
+        if (u.avatar_url) {
+          avatarWrap.innerHTML = `<img src="${u.avatar_url}" class="avatar" alt="${u.username}" />`;
+        } else {
+          avatarWrap.innerHTML = `<div class="avatar">${u.username.charAt(0).toUpperCase()}</div>`;
+        }
+
+        document.getElementById('username-display').textContent = `@${u.username}`;
+        document.getElementById('user-id').textContent   = u.id;
+        document.getElementById('user-email').textContent = u.email || '—';
+        document.getElementById('user-login').textContent =
+          u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '—';
+
+        const badge = document.getElementById('role-badge');
+        badge.textContent = u.role;
+        if (u.role === 'admin') badge.classList.add('admin');
+
+        const perms = u.role === 'admin'
+          ? ['✓ View and search all profiles', '✓ Create new profiles', '✓ Delete profiles', '✓ Export profiles as CSV']
+          : ['✓ View and search all profiles', '✓ Export profiles as CSV', '✗ Create profiles (admin only)', '✗ Delete profiles (admin only)'];
+
+        document.getElementById('permissions').innerHTML =
+          perms.map(p => `<li>${p}</li>`).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
